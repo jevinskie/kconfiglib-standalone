@@ -1,0 +1,38 @@
+[build-system]
+build-backend = "setuptools.build_meta"
+requires = ["setuptools>=61", "setuptools-scm>=8.0"]
+
+[project]
+authors = [
+  {name = "Jevin Sweval", email = "jevinsweval@gmail.com"}
+]
+classifiers = [
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12"
+]
+description = "Standalone version of Zephyr's kconfiglib fork"
+dynamic = ["version"]
+keywords = ["kconfig", "kconfiglib", "zephyr", "linux-kernel"]
+license = {text = "ISC"}
+name = "kconfiglib-standalone"
+readme = {file = 'README.md', content-type = 'text/markdown'}
+requires-python = ">=3.11"
+
+[project.scripts]
+kconfig-sa-menuconfig = "kconfiglib_standalone.menuconfig:main"
+
+[project.urls]
+repository = "https://github.com/jevinskie/kconfiglib-standalone"
+
+[tool.ruff.lint]
+extend-select = ["I"]
+
+[tool.setuptools]
+zip-safe = true
+
+[tool.setuptools.dynamic]
+version = {attr = "kconfiglib_standalone._version.__version__"}
+
+[tool.setuptools_scm]
+version_file = "kconfiglib_standalone/_version.py"

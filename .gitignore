@@ -1,0 +1,11 @@
+# Python
+**/__pycache__/
+/kconfiglib_standalone.egg-info/
+/kconfiglib_standalone/_version.py
+# Ruff
+/.ruff_cache
+# mypy
+/.mypy_cache
+
+# VS Code
+**/.vscode

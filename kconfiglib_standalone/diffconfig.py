@@ -9,10 +9,14 @@
 # last worked on 2008 by Tim Bird
 #
 
-import sys, os
+import os
+import sys
+
+merge_style: bool
+
 
 def usage():
-    print("""Usage: diffconfig [-h] [-m] [<config1> <config2>]
+    print("""Usage: kconfig-sa-diffconfig [-h] [-m] [<config1> <config2>]
 
 Diffconfig is a simple utility for comparing two .config files.
 Using standard diff to compare .config files often includes extraneous and
@@ -28,7 +32,7 @@ changed and new values in kernel config option format.
 If no config files are specified, .config and .config.old are used.
 
 Example usage:
- $ diffconfig .config config-with-some-changes
+ $ kconfig-sa-diffconfig .config config-with-some-changes
 -EXT2_FS_XATTR  n
 -EXT2_FS_XIP  n
  CRAMFS  n -> y
@@ -37,6 +41,7 @@ Example usage:
  PRINTK_TIME  n -> y
 """)
     sys.exit(0)
+
 
 # returns a dictionary of name/value pairs for config items in the file
 def readconfig(config_file):
@@ -50,28 +55,30 @@ def readconfig(config_file):
             d[line[9:-11]] = "n"
     return d
 
+
 def print_config(op, config, value, new_value):
     global merge_style
 
     if merge_style:
         if new_value:
-            if new_value=="n":
+            if new_value == "n":
                 print("# CONFIG_%s is not set" % config)
             else:
                 print("CONFIG_%s=%s" % (config, new_value))
     else:
-        if op=="-":
+        if op == "-":
             print("-%s %s" % (config, value))
-        elif op=="+":
+        elif op == "+":
             print("+%s %s" % (config, new_value))
         else:
             print(" %s %s -> %s" % (config, value, new_value))
+
 
 def main():
     global merge_style
 
     # parse command line args
-    if ("-h" in sys.argv or "--help" in sys.argv):
+    if "-h" in sys.argv or "--help" in sys.argv:
         usage()
 
     merge_style = 0
@@ -80,15 +87,15 @@ def main():
         sys.argv.remove("-m")
 
     argc = len(sys.argv)
-    if not (argc==1 or argc == 3):
+    if not (argc == 1 or argc == 3):
         print("Error: incorrect number of arguments or unrecognized option")
         usage()
 
     if argc == 1:
         # if no filenames given, assume .config and .config.old
-        build_dir=""
+        build_dir = ""
         if "KBUILD_OUTPUT" in os.environ:
-            build_dir = os.environ["KBUILD_OUTPUT"]+"/"
+            build_dir = os.environ["KBUILD_OUTPUT"] + "/"
         configa_filename = build_dir + ".config.old"
         configb_filename = build_dir + ".config"
     else:
@@ -98,9 +105,9 @@ def main():
     try:
         a = readconfig(open(configa_filename))
         b = readconfig(open(configb_filename))
-    except (IOError):
+    except IOError:
         e = sys.exc_info()[1]
-        print("I/O error[%s]: %s\n" % (e.args[0],e.args[1]))
+        print("I/O error[%s]: %s\n" % (e.args[0], e.args[1]))
         usage()
 
     # print items in a but not b (accumulate, sort and print)
@@ -130,5 +137,6 @@ def main():
     new = sorted(b.keys())
     for config in new:
         print_config("+", config, None, b[config])
+
 
 main()

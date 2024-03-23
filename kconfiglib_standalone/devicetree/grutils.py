@@ -8,6 +8,28 @@
 
 import collections
 
+
+def node_key(node):
+    # This sort key ensures that sibling nodes with the same name will
+    # use unit addresses as tiebreakers. That in turn ensures ordinals
+    # for otherwise indistinguishable siblings are in increasing order
+    # by unit address, which is convenient for displaying output.
+
+    if node.parent:
+        parent_path = node.parent.path
+    else:
+        parent_path = "/"
+
+    if node.unit_addr is not None:
+        name = node.name.rsplit("@", 1)[0]
+        unit_addr = node.unit_addr
+    else:
+        name = node.name
+        unit_addr = -1
+
+    return (parent_path, name, unit_addr)
+
+
 class Graph:
     """
     Represent a directed graph with edtlib Node objects as nodes.
@@ -17,6 +39,8 @@ class Graph:
     some aspect of C{source} requires that some aspect of C{target}
     already be available.
     """
+
+    __scc_order = None
 
     def __init__(self, root=None):
         self.__roots = None
@@ -60,6 +84,35 @@ class Graph:
                     self.__roots.add(n)
         return self.__roots
 
+    def _tarjan_root(self, v):
+        # Do the work of Tarjan's algorithm for a given root node.
+
+        if self.__tarjan_index.get(v) is not None:
+            # "Root" was already reached.
+            return
+        self.__tarjan_index[v] = self.__tarjan_low_link[v] = self.__index
+        self.__index += 1
+        self.__stack.append(v)
+        source = v
+        for target in sorted(self.__edge_map[source], key=node_key):
+            if self.__tarjan_index[target] is None:
+                self._tarjan_root(target)
+                self.__tarjan_low_link[v] = min(
+                    self.__tarjan_low_link[v], self.__tarjan_low_link[target]
+                )
+            elif target in self.__stack:
+                self.__tarjan_low_link[v] = min(
+                    self.__tarjan_low_link[v], self.__tarjan_low_link[target]
+                )
+
+        if self.__tarjan_low_link[v] == self.__tarjan_index[v]:
+            scc = []
+            while True:
+                scc.append(self.__stack.pop())
+                if v == scc[-1]:
+                    break
+            self.__scc_order.append(scc)
+
     def _tarjan(self):
         # Execute Tarjan's algorithm on the graph.
         #
@@ -82,7 +135,11 @@ class Graph:
             self.__tarjan_index[v] = None
         roots = sorted(self.roots(), key=node_key)
         if self.__nodes and not roots:
-            raise Exception('TARJAN: No roots found in graph with {} nodes'.format(len(self.__nodes)))
+            raise Exception(
+                "TARJAN: No roots found in graph with {} nodes".format(
+                    len(self.__nodes)
+                )
+            )
 
         for r in roots:
             self._tarjan_root(r)
@@ -98,31 +155,6 @@ class Graph:
                 scc[0].dep_ordinal = ordinal
                 ordinal += 1
 
-    def _tarjan_root(self, v):
-        # Do the work of Tarjan's algorithm for a given root node.
-
-        if self.__tarjan_index.get(v) is not None:
-            # "Root" was already reached.
-            return
-        self.__tarjan_index[v] = self.__tarjan_low_link[v] = self.__index
-        self.__index += 1
-        self.__stack.append(v)
-        source = v
-        for target in sorted(self.__edge_map[source], key=node_key):
-            if self.__tarjan_index[target] is None:
-                self._tarjan_root(target)
-                self.__tarjan_low_link[v] = min(self.__tarjan_low_link[v], self.__tarjan_low_link[target])
-            elif target in self.__stack:
-                self.__tarjan_low_link[v] = min(self.__tarjan_low_link[v], self.__tarjan_low_link[target])
-
-        if self.__tarjan_low_link[v] == self.__tarjan_index[v]:
-            scc = []
-            while True:
-                scc.append(self.__stack.pop())
-                if v == scc[-1]:
-                    break
-            self.__scc_order.append(scc)
-
     def scc_order(self):
         """Return the strongly-connected components in order.
 
@@ -136,7 +168,6 @@ class Graph:
         if not self.__scc_order:
             self._tarjan()
         return self.__scc_order
-    __scc_order = None
 
     def depends_on(self, node):
         """Get the nodes that 'node' directly depends on."""
@@ -145,23 +176,3 @@ class Graph:
     def required_by(self, node):
         """Get the nodes that directly depend on 'node'."""
         return sorted(self.__reverse_map[node], key=node_key)
-
-def node_key(node):
-    # This sort key ensures that sibling nodes with the same name will
-    # use unit addresses as tiebreakers. That in turn ensures ordinals
-    # for otherwise indistinguishable siblings are in increasing order
-    # by unit address, which is convenient for displaying output.
-
-    if node.parent:
-        parent_path = node.parent.path
-    else:
-        parent_path = '/'
-
-    if node.unit_addr is not None:
-        name = node.name.rsplit('@', 1)[0]
-        unit_addr = node.unit_addr
-    else:
-        name = node.name
-        unit_addr = -1
-
-    return (parent_path, name, unit_addr)

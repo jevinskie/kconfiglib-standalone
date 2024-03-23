@@ -8,9 +8,14 @@ Shared internal code. Do not use outside of the package.
 
 from typing import Any, Callable
 
-def _slice_helper(node: Any,    # avoids a circular import with dtlib
-                  prop_name: str, size: int, size_hint: str,
-                  err_class: Callable[..., Exception]):
+
+def _slice_helper(
+    node: Any,  # avoids a circular import with dtlib
+    prop_name: str,
+    size: int,
+    size_hint: str,
+    err_class: Callable[..., Exception],
+):
     # Splits node.props[prop_name].value into 'size'-sized chunks,
     # returning a list of chunks. Raises err_class(...) if the length
     # of the property is not evenly divisible by 'size'. The argument
@@ -25,6 +30,7 @@ def _slice_helper(node: Any,    # avoids a circular import with dtlib
             f"'{prop_name}' property in {node!r} has length {len(raw)}, "
             f"which is not evenly divisible by {size} (= {size_hint}). "
             "Note that #*-cells properties come either from the parent node or "
-            "from the controller (in the case of 'interrupts').")
+            "from the controller (in the case of 'interrupts')."
+        )
 
-    return [raw[i:i + size] for i in range(0, len(raw), size)]
+    return [raw[i : i + size] for i in range(0, len(raw), size)]
